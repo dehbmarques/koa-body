@@ -1,12 +1,12 @@
-# koa-body [![NPM version][npmjs-img]][npmjs-url] [![Build Status][travis-img]][travis-url] [![Dependency Status][depstat-img]][depstat-url]
-> A [`koa`][koa-url] body parser middleware with support for `multipart/form-data`, `application/json` or `application/x-www-form-urlencoded` request bodies. Via [formidable][formidable-url] and [co-body][cobody-url]
+# [koa][koa-url]-better-body [![NPM version][npmjs-img]][npmjs-url] [![Build Status][travis-img]][travis-url] [![Dependency Status][depstat-img]][depstat-url]
+> A [`koa`][koa-url] body parser middleware with support for `multipart/form-data`, `application/json` or `application/x-www-form-urlencoded` request bodies. Via [formidable][formidable-url] and [co-body][cobody-url].
 
 
 ## Install [![Nodei.co stats][npmjs-install]][npmjs-url] 
 > Install with [npm](https://npmjs.org)
 
 ```
-$ npm install koa-body
+$ npm install koa-better-body
 ```
 
 
@@ -18,7 +18,7 @@ $ npm install koa-body
 
 
 ## Options
-> `koa-body` supports all [`formidable`][formidable-url] **and** [`co-body`][cobody-url] (to [`raw-body`][rawbody-url]) options. Be sure to look at their READMEs for more information. However, `koa-body` have few custom options, that are
+> However, `koa-better-body` have few custom options, see also [co-body][cobody-url], [raw-body][rawbody-url], [formidable][formidable-url]
 
 - `patchNode` **{Boolean}** Patch request body to Node's `ctx.req` object, default `false`
 - `patchKoa` **{Boolean}** Patch request body to Koa's `ctx.request` object, default `true`
@@ -27,9 +27,10 @@ $ npm install koa-body
 - `encoding` **{String}** Sets encoding for incoming form fields, default `utf-8`
 - `multipart` **{Boolean}** Support `multipart/form-data` request bodies, default `false`
 - `formidable` **{Object}** Options that are passing to `formidable`
-- `formidable.maxFields` **{Number}** koa-body's default is to `10`
-- `formidable.multiples` **{Boolean}** koa-body's default is to `true`
-- `formidable.keepExtensions` **{Boolean}** koa-body's default is to `true`
+- `formidable.maxFields` **{Number}** See [formidable-options](./readme.md#formidable-options). our default `10`
+- `formidable.multiples` **{Boolean}** See [formidable-options](./readme.md#formidable-options), our default `true`
+- `formidable.keepExtensions` **{Boolean}** See [formidable-options](./readme.md#formidable-options), our default `true`
+- `return` **{GeneratorFunction}** That you can use with [koa][koa-url] or [co][co-url]
 
 
 ## formidable options
@@ -65,8 +66,9 @@ $ npm test
 + [npmjs/dlau][author-dlau-npmjs]
 
 
+
 ## License [![MIT license][license-img]][license-url]
-Copyright (c) 2014 [Charlike Mike Reagent][author-website], [Daryl Lau][author-dlau-website], [contributors](https://github.com/dlau/koa-body/graphs/contributors).  
+Copyright (c) 2014 [Charlike Mike Reagent][author-website], [Daryl Lau][author-dlau-website], [contributors](https://github.com/tunnckoCore/koa-better-body/graphs/contributors).  
 Released under the [`MIT`][license-url] license.
 
 
@@ -102,4 +104,5 @@ Released under the [`MIT`][license-url] license.
 [multer-url]: https://github.com/expressjs/multer
 [koa-router-url]: https://github.com/alexmingoia/koa-router
 [koa-url]: https://github.com/koajs/koa
-[formidable-url]: https://github.com/felixge/node-formidable
+[formidable-url]: https://github.com/felix
+[co-url]: https://github.com/visionmedia/co
