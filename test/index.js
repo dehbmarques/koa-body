@@ -328,4 +328,69 @@ describe('koa-body', function () {
         .expect(200, {})
         .end(done);
     });
+
+
+  /**
+   * MULTIPART - PARSE TO OBJECT
+   */
+  it('should parse `multipart` to .body object', function (done) {
+        var app = koa();
+        var usersResource = new Resource('users', {
+          // POST /users
+          create: function *(next) {
+            this.status = 201;
+            this.body = this.request.body;
+          }
+        });
+
+        app.use(koaBody({
+          multipart: true,
+          parseFormDataToObject: true,
+          formidable: {
+            uploadDir: __dirname + '/../'
+          }
+        }));
+        app.use(usersResource.middleware());
+
+        request(http.createServer(app.callback()))
+          .post('/users')
+          .type('multipart/form-data')
+          .field('user.id', '1')
+          .field('user.name', 'andre')
+          .field('user.contacts[0].id', '1')
+          .field('user.contacts[0].phones[]', '111')
+          .field('user.contacts[0].phones[]', '222')
+          .field('user.contacts[1].id', '2')
+          .attach('user.personalFiles[]', 'package.json')
+          .attach('user.personalFiles[]', 'index.js')
+          .attach('thirdField', 'LICENSE')
+          .expect(201)
+          .end(function(err, res){
+            if (err) return done(err);
+
+            res.body.user.id.should.equal('1');
+            res.body.user.name.should.equal('andre');
+
+            res.body.user.contacts.should.be.instanceof(Array).and.have.lengthOf(2);
+            res.body.user.contacts[0].id.should.equal('1');
+            res.body.user.contacts[1].id.should.equal('2');
+
+            res.body.user.contacts[0].phones.should.be.instanceof(Array).and.have.lengthOf(2);
+            res.body.user.contacts[0].phones[0].should.equal('111');
+            res.body.user.contacts[0].phones[1].should.equal('222');
+
+            res.body.user.personalFiles.should.be.instanceof(Array).and.have.lengthOf(2);
+
+            res.body.user.personalFiles[0].name.should.equal('package.json');
+            fs.unlinkSync(res.body.user.personalFiles[0].path);
+
+            res.body.user.personalFiles[1].name.should.equal('index.js');
+            fs.unlinkSync(res.body.user.personalFiles[1].path);
+
+            res.body.thirdField.name.should.equal('LICENSE');
+            fs.unlinkSync(res.body.thirdField.path);
+
+            done();
+          });
+  });
 });

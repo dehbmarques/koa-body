@@ -38,6 +38,7 @@ function requestbody(opts) {
   opts.jsonLimit = 'jsonLimit' in opts ? opts.jsonLimit : '1mb';
   opts.formLimit = 'formLimit' in opts ? opts.formLimit : '56kb';
   opts.formidable = 'formidable' in opts ? opts.formidable : {};
+  opts.parseFormDataToObject = 'parseFormDataToObject' in opts ? opts.parseFormDataToObject : false;
 
   return function *(next){
     var body = {};
@@ -48,7 +49,12 @@ function requestbody(opts) {
       body = yield buddy.form(this, {encoding: opts.encoding, limit: opts.formLimit});
     }
     else if (opts.multipart && this.is('multipart')) {
-      body = yield formy(this, opts.formidable);
+      if (opts.parseFormDataToObject) {
+        body = yield formyToObject(this, opts.formidable);
+      }
+      else {
+        body = yield formy(this, opts.formidable);
+      }
     }
 
     if (opts.patchNode) {
@@ -77,4 +83,92 @@ function formy(ctx, opts) {
       done(null, {fields: fields, files: files})
     })
   }
+}
+
+/**
+ * Donable formidable
+ * 
+ * @param  {Stream} ctx
+ * @param  {Object} opts
+ * @return {Object}
+ * @api private
+ */
+function formyToObject(ctx, opts) {
+  return function(done) {
+    var form = new forms.IncomingForm(opts);
+    var fieldsArray = [];
+
+    form.on('field', function(name, value) {
+      fieldsArray.push({name: name, value: value});
+    });
+
+    form.on('file', function(name, value) {
+      fieldsArray.push({name: name, value: value});
+    });
+
+    form.on('end', function () {
+
+      var fields = {};
+      var arrayRegex = /\[(|\d+)\]/;
+
+      fieldsArray.sort(function (a, b) {
+        if(a.name < b.name) return -1;
+        if(a.name > b.name) return 1;
+        return 0;
+      });
+
+      fieldsArray.forEach(function (item) {
+        var name = item.name;
+        var value = item.value;
+
+        var currentPart = fields;
+        name.split('.').forEach(function (part, i, arr) {
+
+          var isArray = false;
+          var arrayIndex;
+          var matchArray = part.match(arrayRegex);
+          if (matchArray !== null) {
+            isArray = true;
+            if (matchArray[1] !== "") {
+              arrayIndex = parseInt(matchArray[1]);
+              if (isNaN(arrayIndex)) {
+                ctx.throw('Invalid Array');
+              }
+            }
+            part = part.replace(arrayRegex, '');
+          }
+
+          if (currentPart[part] === undefined) {
+            currentPart[part] = isArray ? [] : { };
+          }
+
+          if (i < arr.length-1) {
+            currentPart = currentPart[part];
+            if (currentPart instanceof Array) {
+              if (currentPart[arrayIndex] === undefined) {
+                currentPart[arrayIndex] = { };
+              }
+              currentPart = currentPart[arrayIndex];
+            }
+          }
+          else {
+            if (currentPart[part] instanceof Array) {
+              currentPart[part].push(value);
+            }
+            else {
+              currentPart[part] = value;
+            }
+          }
+        });
+      });
+
+      done(null, fields);
+    });
+
+    form.on('error', function (err) {
+      return done(err);
+    });
+
+    form.parse(ctx.req);
+  };
 }
