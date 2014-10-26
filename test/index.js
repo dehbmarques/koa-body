@@ -10,6 +10,7 @@
 'use strict';
 
 var fs       = require('fs'),
+    qs       = require('qs'),
     log      = console.log,
     koa      = require('koa'),
     http     = require('http'),
@@ -355,19 +356,21 @@ describe('koa-body', function () {
         request(http.createServer(app.callback()))
           .post('/users')
           .type('multipart/form-data')
-          .field('user.id', '1')
-          .field('user.name', 'andre')
-          .field('user.contacts[0].id', '1')
-          .field('user.contacts[0].phones[]', '111')
-          .field('user.contacts[0].phones[]', '222')
-          .field('user.contacts[1].id', '2')
-          .attach('user.personalFiles[]', 'package.json')
-          .attach('user.personalFiles[]', 'index.js')
+          .field('type', 'user')
+          .field('user[id]', '1')
+          .field('user[name]', 'andre')
+          .field('user[contacts][0][id]', '1')
+          .field('user[contacts][0][phones][0]', '111')
+          .field('user[contacts][0][phones][1]', '222')
+          .field('user[contacts][1][id]', '2')
+          .attach('user[personalFiles][]', 'package.json')
+          .attach('user[personalFiles][]', 'index.js')
           .attach('thirdField', 'LICENSE')
           .expect(201)
           .end(function(err, res){
             if (err) return done(err);
 
+            res.body.type.should.equal('user');
             res.body.user.id.should.equal('1');
             res.body.user.name.should.equal('andre');
 
@@ -393,4 +396,61 @@ describe('koa-body', function () {
             done();
           });
   });
+
+  /**
+   * URLENCODED - PARSE TO OBJECT
+   */
+  it('should parse `urlencoded` to .body object', function (done) {
+    var app = koa();
+    var usersResource = new Resource('users', {
+      // POST /users
+      create: function *(next) {
+        this.status = 201;
+        this.body = this.request.body;
+      }
+    });
+
+
+    app.use(koaBody({multipart: true}));
+    app.use(usersResource.middleware());
+
+    var postData = qs.stringify({
+      id: 1,
+      name: 'andre',
+      contacts: [{
+        id: 1,
+        phones: [ '111', '222' ]
+      }, {
+        id: 2
+      }],
+      array: [0, 1]
+    });
+
+    request(http.createServer(app.callback()))
+      .post('/users')
+      .type('application/x-www-form-urlencoded')
+      .send(postData)
+      .expect(201)
+      .end(function(err, res) {
+        if (err) return done(err);
+
+          //console.log('res.body', res.body.contacts);
+          res.body.id.should.equal('1');
+          res.body.name.should.equal('andre');
+
+          res.body.contacts.should.be.instanceof(Array).and.have.lengthOf(2);
+          res.body.contacts[0].id.should.equal('1');
+          res.body.contacts[1].id.should.equal('2');
+          res.body.contacts[0].phones.should.be.instanceof(Array).and.have.lengthOf(2);
+          res.body.contacts[0].phones[0].should.equal('111');
+          res.body.contacts[0].phones[1].should.equal('222');
+
+          res.body.array.should.be.instanceof(Array).and.have.lengthOf(2);
+          res.body.array[0].should.equal('0');
+          res.body.array[1].should.equal('1');
+
+        done();
+      });
+  });
+
 });

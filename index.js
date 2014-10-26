@@ -109,7 +109,6 @@ function formyToObject(ctx, opts) {
     form.on('end', function () {
 
       var fields = {};
-      var arrayRegex = /\[(|\d+)\]/;
 
       fieldsArray.sort(function (a, b) {
         if(a.name < b.name) return -1;
@@ -121,44 +120,27 @@ function formyToObject(ctx, opts) {
         var name = item.name;
         var value = item.value;
 
-        var currentPart = fields;
-        name.split('.').forEach(function (part, i, arr) {
+        var _fields = fields;
+        name.replace(/\]/g, '').split('[').forEach(function (part, i, parts) {
 
-          var isArray = false;
-          var arrayIndex;
-          var matchArray = part.match(arrayRegex);
-          if (matchArray !== null) {
-            isArray = true;
-            if (matchArray[1] !== "") {
-              arrayIndex = parseInt(matchArray[1]);
-              if (isNaN(arrayIndex)) {
-                ctx.throw('Invalid Array');
-              }
-            }
-            part = part.replace(arrayRegex, '');
+          var nextPart = parts[i+1];
+          var isArray = nextPart === '' || !isNaN(parseInt(nextPart));
+
+          if (part === '') {
+            part = _fields.length;
           }
 
-          if (currentPart[part] === undefined) {
-            currentPart[part] = isArray ? [] : { };
+          part = isNaN(parseInt(part)) ? part : parseInt(part);
+
+          if (_fields[part] === undefined) {
+            _fields[part] = isArray ? [] : {};
           }
 
-          if (i < arr.length-1) {
-            currentPart = currentPart[part];
-            if (currentPart instanceof Array) {
-              if (currentPart[arrayIndex] === undefined) {
-                currentPart[arrayIndex] = { };
-              }
-              currentPart = currentPart[arrayIndex];
-            }
+          if (i == parts.length-1) {
+            _fields[part] = value;
           }
-          else {
-            if (currentPart[part] instanceof Array) {
-              currentPart[part].push(value);
-            }
-            else {
-              currentPart[part] = value;
-            }
-          }
+
+          _fields = _fields[part];
         });
       });
 
